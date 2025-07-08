@@ -1,6 +1,7 @@
 # gossamer
 
-Go-based website generator to create static, HTMX, and REST API sites.
+Go-based website generator to create a traditional web application using Go HTML
+and HTMX templates, as well as REST API endpoints.
 
 [![GoDoc][godoc badge]][godoc link]
 [![Go Report Card][report badge]][report card]
