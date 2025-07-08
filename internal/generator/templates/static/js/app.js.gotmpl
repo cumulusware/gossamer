@@ -1,0 +1,100 @@
+// Application JavaScript
+
+// HTMX configuration
+document.addEventListener('DOMContentLoaded', function() {
+    // Configure HTMX
+    htmx.config.globalViewTransitions = true;
+    
+    // Add loading indicators
+    document.body.addEventListener('htmx:beforeRequest', function(evt) {
+        // Add loading spinner or indicator
+        const target = evt.target;
+        if (target.classList.contains('htmx-request')) {
+            // Already has indicator
+            return;
+        }
+        
+        // Add loading class
+        target.classList.add('htmx-loading');
+        
+        // Add spinner if needed
+        if (!target.querySelector('.htmx-indicator')) {
+            const spinner = document.createElement('span');
+            spinner.className = 'htmx-indicator spinner';
+            target.appendChild(spinner);
+        }
+    });
+    
+    document.body.addEventListener('htmx:afterRequest', function(evt) {
+        // Remove loading indicators
+        const target = evt.target;
+        target.classList.remove('htmx-loading');
+        
+        const spinner = target.querySelector('.htmx-indicator');
+        if (spinner) {
+            spinner.remove();
+        }
+    });
+    
+    // Handle form validation
+    const forms = document.querySelectorAll('form');
+    forms.forEach(form => {
+        form.addEventListener('submit', function(e) {
+            // Basic client-side validation
+            const requiredFields = form.querySelectorAll('[required]');
+            let isValid = true;
+            
+            requiredFields.forEach(field => {
+                if (!field.value.trim()) {
+                    field.classList.add('form-error');
+                    isValid = false;
+                } else {
+                    field.classList.remove('form-error');
+                }
+            });
+            
+            if (!isValid) {
+                e.preventDefault();
+                return false;
+            }
+        });
+    });
+    
+    // Remove error styling on input
+    document.addEventListener('input', function(e) {
+        if (e.target.classList.contains('form-error')) {
+            e.target.classList.remove('form-error');
+        }
+    });
+});
+
+// Utility functions
+window.App = {
+    // Show notification
+    showNotification: function(message, type = 'info') {
+        const notification = document.createElement('div');
+        notification.className = `fixed top-4 right-4 p-4 rounded-md shadow-lg z-50 ${
+            type === 'error' ? 'bg-red-500 text-white' :
+            type === 'success' ? 'bg-green-500 text-white' :
+            'bg-blue-500 text-white'
+        }`;
+        notification.textContent = message;
+        
+        document.body.appendChild(notification);
+        
+        // Auto remove after 5 seconds
+        setTimeout(() => {
+            notification.remove();
+        }, 5000);
+        
+        // Click to remove
+        notification.addEventListener('click', () => {
+            notification.remove();
+        });
+    },
+    
+    // Confirm action
+    confirm: function(message) {
+        return confirm(message);
+    }
+};

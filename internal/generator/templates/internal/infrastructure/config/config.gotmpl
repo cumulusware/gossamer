@@ -1,0 +1,47 @@
+package config
+
+import (
+	"os"
+	"path/filepath"
+
+	"github.com/joho/godotenv"
+)
+
+type Config struct {
+	Port          string
+	Host          string
+	DatabaseURL   string
+	SessionSecret string
+	CSRFSecret    string
+	Environment   string
+	LogLevel      string
+}
+
+func Load() (*Config, error) {
+	// Load .env file if it exists (for development)
+	envPath := filepath.Join("config", ".env")
+	if _, err := os.Stat(envPath); err == nil {
+		if err := godotenv.Load(envPath); err != nil {
+			return nil, err
+		}
+	}
+
+	config := &Config{
+		Port:          getEnv("PORT", "8080"),
+		Host:          getEnv("HOST", "localhost"),
+		DatabaseURL:   getEnv("DATABASE_URL", "postgres://postgres:postgres@localhost:5432/webapp?sslmode=disable"),
+		SessionSecret: getEnv("SESSION_SECRET", "default-session-secret"),
+		CSRFSecret:    getEnv("CSRF_SECRET", "default-csrf-secret"),
+		Environment:   getEnv("ENV", "development"),
+		LogLevel:      getEnv("LOG_LEVEL", "info"),
+	}
+
+	return config, nil
+}
+
+func getEnv(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return defaultValue
+}

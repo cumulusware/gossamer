@@ -1,0 +1,59 @@
+package database
+
+import (
+	"context"
+	"database/sql"
+	"fmt"
+
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/pressly/goose/v3"
+
+	_ "github.com/jackc/pgx/v5/stdlib"
+)
+
+type DB struct {
+	Pool *pgxpool.Pool
+}
+
+func New(databaseURL string) (*DB, error) {
+	config, err := pgxpool.ParseConfig(databaseURL)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse database URL: %w", err)
+	}
+
+	pool, err := pgxpool.NewWithConfig(context.Background(), config)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create connection pool: %w", err)
+	}
+
+	// Test the connection
+	if err := pool.Ping(context.Background()); err != nil {
+		return nil, fmt.Errorf("failed to ping database: %w", err)
+	}
+
+	return &DB{Pool: pool}, nil
+}
+
+func (db *DB) Close() error {
+	db.Pool.Close()
+	return nil
+}
+
+func (db *DB) Migrate(dir string) error {
+	// Create a sql.DB for goose migrations
+	sqlDB, err := sql.Open("pgx", db.Pool.Config().ConnString())
+	if err != nil {
+		return fmt.Errorf("failed to open sql.DB for migrations: %w", err)
+	}
+	defer sqlDB.Close()
+
+	if err := goose.SetDialect("postgres"); err != nil {
+		return fmt.Errorf("failed to set goose dialect: %w", err)
+	}
+
+	if err := goose.Up(sqlDB, dir); err != nil {
+		return fmt.Errorf("failed to run migrations: %w", err)
+	}
+
+	return nil
+}

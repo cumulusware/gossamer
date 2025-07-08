@@ -1,0 +1,63 @@
+# {{.Name}}
+
+{{.Description}}
+
+[![GoDoc][godoc badge]][godoc link]
+[![Go Report Card][report badge]][report card]
+[![License Badge][license badge]][LICENSE.txt]
+
+## Overview
+
+## Installation
+
+```bash
+$ go install {{.ModulePath}}
+```
+
+## Usage
+
+## Documentation
+
+Documentation can be found at either:
+
+- <https://godoc.org/{{.ModulePath}}>
+- <http://localhost:6060/pkg/{{.ModulePath}}> after running `$
+godoc -http=:6060`
+
+## Contributing
+
+Contributions are welcome! To contribute please:
+
+1. Fork the repository
+2. Create a feature branch
+3. Code
+4. Submit a [pull request][]
+
+### Testing
+
+Prior to submitting a [pull request][], please fmt, vet, and lint the code by
+running:
+
+```bash
+$ just check
+```
+
+To update and view the test coverage report:
+
+```bash
+$ just cover
+```
+
+## License
+
+[{{.Name}}][] is released under the MIT license. Please see the
+[LICENSE.txt][] file for more information.
+
+[godoc badge]: https://godoc.org/github.com/cumulusware/gossamer?status.svg
+[godoc link]: https://godoc.org/{{.ModulePath}}
+[gossamer]: https://{{.ModulePath}}
+[LICENSE.txt]: https://{{.ModulePath}}/blob/master/LICENSE.txt
+[license badge]: https://img.shields.io/badge/license-MIT-blue.svg
+[pull request]: https://help.github.com/articles/using-pull-requests
+[report badge]: https://goreportcard.com/badge/{{.ModulePath}}
+[report card]: https://goreportcard.com/report/{{.ModulePath}}

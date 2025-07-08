@@ -1,0 +1,164 @@
+package web
+
+import (
+	"net/http"
+
+	"github.com/justinas/nosurf"
+
+	"{{.ModulePath}}/internal/domain/auth"
+	"{{.ModulePath}}/internal/domain/user"
+	"{{.ModulePath}}/internal/infrastructure/web/middleware"
+)
+
+func (h *Handlers) LoginPage(w http.ResponseWriter, r *http.Request) {
+	// Redirect if already logged in
+	if middleware.GetUserFromContext(r) != nil {
+		http.Redirect(w, r, "/dashboard", http.StatusFound)
+		return
+	}
+
+	data := PageData{
+		Title:     "Login",
+		CSRFToken: nosurf.Token(r),
+	}
+
+	h.renderTemplate(w, "login.gohtml", data)
+}
+
+func (h *Handlers) Login(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Bad request", http.StatusBadRequest)
+		return
+	}
+
+	email := r.FormValue("email")
+	password := r.FormValue("password")
+
+	// Create session through auth service (which handles authentication internally)
+	session, _, err := h.AuthService.Login(r.Context(), auth.LoginRequest{
+		Email:    email,
+		Password: password,
+	})
+	if err != nil {
+		data := PageData{
+			Title:     "Login",
+			CSRFToken: nosurf.Token(r),
+			Error:     "Invalid email or password",
+		}
+		h.renderTemplate(w, "login.gohtml", data)
+		return
+	}
+
+	// Set session cookie
+	http.SetCookie(w, &http.Cookie{
+		Name:     "session_token",
+		Value:    session.Token,
+		HttpOnly: true,
+		Secure:   false, // Set to true in production with HTTPS
+		SameSite: http.SameSiteStrictMode,
+		Path:     "/",
+	})
+
+	http.Redirect(w, r, "/dashboard", http.StatusFound)
+}
+
+func (h *Handlers) RegisterPage(w http.ResponseWriter, r *http.Request) {
+	// Redirect if already logged in
+	if middleware.GetUserFromContext(r) != nil {
+		http.Redirect(w, r, "/dashboard", http.StatusFound)
+		return
+	}
+
+	data := PageData{
+		Title:     "Register",
+		CSRFToken: nosurf.Token(r),
+	}
+
+	h.renderTemplate(w, "register.gohtml", data)
+}
+
+func (h *Handlers) Register(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Bad request", http.StatusBadRequest)
+		return
+	}
+
+	email := r.FormValue("email")
+	username := r.FormValue("username")
+	password := r.FormValue("password")
+	firstName := r.FormValue("first_name")
+	lastName := r.FormValue("last_name")
+
+	req := user.CreateUserRequest{
+		Email:    email,
+		Username: username,
+		Password: password,
+	}
+
+	if firstName != "" {
+		req.FirstName = &firstName
+	}
+	if lastName != "" {
+		req.LastName = &lastName
+	}
+
+	// Create user
+	_, err := h.UserService.Create(r.Context(), req)
+	if err != nil {
+		var errorMsg string
+		switch err {
+		case user.ErrEmailExists:
+			errorMsg = "Email already exists"
+		case user.ErrUsernameExists:
+			errorMsg = "Username already exists"
+		default:
+			errorMsg = "Failed to create account"
+		}
+
+		data := PageData{
+			Title:     "Register",
+			CSRFToken: nosurf.Token(r),
+			Error:     errorMsg,
+		}
+		h.renderTemplate(w, "register.gohtml", data)
+		return
+	}
+
+	// Redirect to login page with success message
+	http.Redirect(w, r, "/login?registered=1", http.StatusFound)
+}
+
+func (h *Handlers) Logout(w http.ResponseWriter, r *http.Request) {
+	// Get session token from cookie
+	cookie, err := r.Cookie("session_token")
+	if err == nil {
+		// Delete session from database
+		_ = h.AuthService.Logout(r.Context(), cookie.Value)
+	}
+
+	// Clear session cookie
+	http.SetCookie(w, &http.Cookie{
+		Name:   "session_token",
+		Value:  "",
+		MaxAge: -1,
+		Path:   "/",
+	})
+
+	http.Redirect(w, r, "/", http.StatusFound)
+}
+
+func (h *Handlers) Dashboard(w http.ResponseWriter, r *http.Request) {
+	user := middleware.GetUserFromContext(r)
+	if user == nil {
+		http.Redirect(w, r, "/login", http.StatusFound)
+		return
+	}
+
+	data := PageData{
+		Title:     "Dashboard",
+		User:      user,
+		CSRFToken: nosurf.Token(r),
+	}
+
+	h.renderTemplate(w, "dashboard.gohtml", data)
+}

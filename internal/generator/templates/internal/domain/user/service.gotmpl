@@ -1,0 +1,130 @@
+package user
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"time"
+
+	"github.com/google/uuid"
+	"golang.org/x/crypto/bcrypt"
+)
+
+var (
+	ErrUserNotFound      = errors.New("user not found")
+	ErrEmailExists       = errors.New("email already exists")
+	ErrUsernameExists    = errors.New("username already exists")
+	ErrInvalidPassword   = errors.New("invalid password")
+	ErrInvalidCredentials = errors.New("invalid credentials")
+)
+
+type Service struct {
+	repo Repository
+}
+
+func NewService(repo Repository) *Service {
+	return &Service{repo: repo}
+}
+
+func (s *Service) Create(ctx context.Context, req CreateUserRequest) (*User, error) {
+	// Check if email exists
+	if _, err := s.repo.GetByEmail(ctx, req.Email); err == nil {
+		return nil, ErrEmailExists
+	}
+
+	// Check if username exists
+	if _, err := s.repo.GetByUsername(ctx, req.Username); err == nil {
+		return nil, ErrUsernameExists
+	}
+
+	// Hash password
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+	if err != nil {
+		return nil, fmt.Errorf("failed to hash password: %w", err)
+	}
+
+	user := &User{
+		ID:           uuid.New(),
+		Email:        req.Email,
+		Username:     req.Username,
+		PasswordHash: string(hashedPassword),
+		FirstName:    req.FirstName,
+		LastName:     req.LastName,
+		IsActive:     true,
+		CreatedAt:    time.Now(),
+		UpdatedAt:    time.Now(),
+	}
+
+	if err := s.repo.Create(ctx, user); err != nil {
+		return nil, fmt.Errorf("failed to create user: %w", err)
+	}
+
+	return user, nil
+}
+
+func (s *Service) GetByID(ctx context.Context, id uuid.UUID) (*User, error) {
+	user, err := s.repo.GetByID(ctx, id)
+	if err != nil {
+		return nil, ErrUserNotFound
+	}
+	return user, nil
+}
+
+func (s *Service) GetByEmail(ctx context.Context, email string) (*User, error) {
+	user, err := s.repo.GetByEmail(ctx, email)
+	if err != nil {
+		return nil, ErrUserNotFound
+	}
+	return user, nil
+}
+
+func (s *Service) Update(ctx context.Context, id uuid.UUID, req UpdateUserRequest) (*User, error) {
+	user, err := s.repo.GetByID(ctx, id)
+	if err != nil {
+		return nil, ErrUserNotFound
+	}
+
+	if req.Email != nil {
+		// Check if new email exists (excluding current user)
+		if existingUser, err := s.repo.GetByEmail(ctx, *req.Email); err == nil && existingUser.ID != id {
+			return nil, ErrEmailExists
+		}
+		user.Email = *req.Email
+	}
+
+	if req.Username != nil {
+		// Check if new username exists (excluding current user)
+		if existingUser, err := s.repo.GetByUsername(ctx, *req.Username); err == nil && existingUser.ID != id {
+			return nil, ErrUsernameExists
+		}
+		user.Username = *req.Username
+	}
+
+	if req.FirstName != nil {
+		user.FirstName = req.FirstName
+	}
+
+	if req.LastName != nil {
+		user.LastName = req.LastName
+	}
+
+	user.UpdatedAt = time.Now()
+
+	if err := s.repo.Update(ctx, user); err != nil {
+		return nil, fmt.Errorf("failed to update user: %w", err)
+	}
+
+	return user, nil
+}
+
+func (s *Service) Delete(ctx context.Context, id uuid.UUID) error {
+	if _, err := s.repo.GetByID(ctx, id); err != nil {
+		return ErrUserNotFound
+	}
+
+	return s.repo.Delete(ctx, id)
+}
+
+func (s *Service) List(ctx context.Context, limit, offset int) ([]*User, error) {
+	return s.repo.List(ctx, limit, offset)
+}

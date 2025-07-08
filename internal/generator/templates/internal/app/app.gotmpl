@@ -1,0 +1,74 @@
+package app
+
+import (
+	"context"
+	"fmt"
+	"log"
+
+	"{{.ModulePath}}/internal/adapters/handlers/api"
+	"{{.ModulePath}}/internal/adapters/handlers/web"
+	"{{.ModulePath}}/internal/adapters/repository"
+	"{{.ModulePath}}/internal/domain/auth"
+	"{{.ModulePath}}/internal/domain/user"
+	"{{.ModulePath}}/internal/infrastructure/config"
+	"{{.ModulePath}}/internal/infrastructure/database"
+	webserver "{{.ModulePath}}/internal/infrastructure/web"
+)
+
+type App struct {
+	config   *config.Config
+	database *database.DB
+	server   *webserver.Server
+}
+
+func NewApp() (*App, error) {
+	// Load configuration
+	cfg, err := config.Load()
+	if err != nil {
+		return nil, fmt.Errorf("failed to load config: %w", err)
+	}
+
+	// Initialize database
+	db, err := database.New(cfg.DatabaseURL)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize database: %w", err)
+	}
+
+	// Run migrations
+	if err := db.Migrate("internal/infrastructure/database/migrations"); err != nil {
+		return nil, fmt.Errorf("failed to run migrations: %w", err)
+	}
+
+	// Initialize repositories
+	userRepo := repository.NewUserPostgres(db)
+	sessionRepo := repository.NewSessionPostgres(db)
+
+	// Initialize services
+	userService := user.NewService(userRepo)
+	authService := auth.NewService(sessionRepo, userRepo, cfg.SessionSecret)
+
+	// Initialize handlers
+	webHandlers := web.NewHandlers(userService, authService)
+	apiHandlers := api.NewHandlers(userService, authService)
+
+	// Initialize server
+	server := webserver.New(cfg, webHandlers, apiHandlers)
+
+	return &App{
+		config:   cfg,
+		database: db,
+		server:   server,
+	}, nil
+}
+
+func (a *App) Start() error {
+	log.Printf("Starting server on %s:%s", a.config.Host, a.config.Port)
+	return a.server.Start()
+}
+
+func (a *App) Shutdown(ctx context.Context) error {
+	if err := a.server.Shutdown(ctx); err != nil {
+		return err
+	}
+	return a.database.Close()
+}

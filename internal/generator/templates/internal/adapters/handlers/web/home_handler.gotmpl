@@ -1,0 +1,18 @@
+package web
+
+import (
+	"net/http"
+
+	"{{.ModulePath}}/internal/infrastructure/web/middleware"
+)
+
+func (h *Handlers) Home(w http.ResponseWriter, r *http.Request) {
+	user := middleware.GetUserFromContext(r)
+
+	data := PageData{
+		Title: "Welcome",
+		User:  user,
+	}
+
+	h.renderTemplate(w, "home.gohtml", data)
+}

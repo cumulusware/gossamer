@@ -1,0 +1,14 @@
+services:
+  lenslocked-app:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    restart: always
+    volumes:
+      - ./assets:/assets
+      - ./images:/app/images
+      - ./config/.env:/.env
+    ports:
+      - 3000:3000
+    depends_on:
+      - lenslocked-db

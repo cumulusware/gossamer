@@ -1,0 +1,26 @@
+<div class="space-y-3">
+    <div class="flex justify-between">
+        <span class="text-gray-600">Username:</span>
+        <span class="font-medium">{{"{{"}}.User.Username{{"}}"}}</span>
+    </div>
+    <div class="flex justify-between">
+        <span class="text-gray-600">Email:</span>
+        <span class="font-medium">{{"{{"}}.User.Email{{"}}"}}</span>
+    </div>
+    {{"{{"}}if .User.FirstName{{"}}"}}
+    <div class="flex justify-between">
+        <span class="text-gray-600">First Name:</span>
+        <span class="font-medium">{{"{{"}}.User.FirstName{{"}}"}}</span>
+    </div>
+    {{"{{"}}end{{"}}"}}
+    {{"{{"}}if .User.LastName{{"}}"}}
+    <div class="flex justify-between">
+        <span class="text-gray-600">Last Name:</span>
+        <span class="font-medium">{{"{{"}}.User.LastName{{"}}"}}</span>
+    </div>
+    {{"{{"}}end{{"}}"}}
+    <div class="flex justify-between">
+        <span class="text-gray-600">Member Since:</span>
+        <span class="font-medium">{{"{{"}}.User.CreatedAt.Format "January 2, 2006"{{"}}"}}</span>
+    </div>
+</div>

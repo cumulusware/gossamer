@@ -1,6 +1,6 @@
 # -*- Justfile -*-
 
-app_name := "gossamer"
+app_name := "{{.Name}}"
 coverage_file := "coverage.out"
 
 # List the available justfile recipes.
@@ -13,49 +13,45 @@ coverage_file := "coverage.out"
 loc:
   scc --remap-unknown "-*- Justfile -*-":"justfile"
 
-# Format, vet, and lint (staticcheck) Go code. Runs before tests.
+# Format, vet, and lint Go code. Runs before tests.
 [group('test')]
 check:
-  go fmt ./...
-  go vet ./...
-  staticcheck -f stylish ./...
-
-# Lint using golangci-lint
-[group('test')]
-lint:
-  golangci-lint run
+	go fmt ./...
+	go vet ./...
+	staticcheck -f stylish ./...
 
 # Run the unit tests.
 [group('test')]
 unit *FLAGS: check
-  go test ./... -cover -vet=off -race {{FLAGS}} -short
+  go test ./... -cover -vet=off -race {{"{{"}}FLAGS{{"}}"}} -short
+
 
 # Run the integration tests.
 [group('test')]
 int *FLAGS: check
-  go test ./... -cover -vet=off -race {{FLAGS}} -run Integration
+  go test ./... -cover -vet=off -race {{"{{"}}FLAGS{{"}}"}} -run Integration
 
 # Run the end-to-end tests.
 [group('test')]
 e2e *FLAGS: check
-  go test ./... -cover -vet=off -race {{FLAGS}} -run E2E
+  go test ./... -cover -vet=off -race {{"{{"}}FLAGS{{"}}"}} -run E2E
 
 # HTML report for unit (default), int, e2e, or all tests.
 [group('test')]
 cover test='unit': check
-  go test ./... -vet=off -coverprofile={{coverage_file}} \
-  {{ if test == 'all' { '' } \
+  go test ./... -vet=off -coverprofile={{"{{"}}coverage_file{{"}}"}} \
+  {{"{{"}} if test == 'all' { '' } \
     else if test == 'int' { '-run Integration' } \
     else if test == 'e2e' { '-run E2E' } \
-    else { '-short' } }}
-  go tool cover -html={{coverage_file}}
+    else { '-short' } {{"}}"}}
+  go tool cover -html={{"{{"}}coverage_file{{"}}"}}
 
 # Build for local operating system.
 [group('build')]
 local:
-	env go build -o dist/{{app_name}}
+	env go build -o dist/{{"{{"}}app_name{{"}}"}}
 
-# Build and install gossamer for local OS
+# Build and install application for local OS
 [group('build')]
 install: local
   env go install
@@ -69,7 +65,7 @@ outdated:
 # Update the given module to the latest version.
 [group('dependencies')]
 update mod:
-  go get -u {{mod}}
+  go get -u {{"{{"}}mod{{"}}"}}
   go mod tidy
 
 # Update all modules.

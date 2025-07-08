@@ -1,0 +1,33 @@
+{{"{{"}}define "content"{{"}}"}}
+<div class="px-4 py-6 sm:px-0">
+    <div class="border-4 border-dashed border-gray-200 rounded-lg p-8">
+        <h1 class="text-3xl font-bold text-gray-900 mb-6">Dashboard</h1>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h2 class="text-xl font-semibold text-gray-900 mb-4">User Information</h2>
+                <div id="user-info-container">
+                    <div hx-get="/htmx/user-info" hx-trigger="load" hx-target="#user-info-container">
+                        Loading...
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h2 class="text-xl font-semibold text-gray-900 mb-4">Quick Actions</h2>
+                <div class="space-y-2">
+                    <button class="w-full text-left px-4 py-2 bg-blue-50 text-blue-700 rounded hover:bg-blue-100">
+                        Update Profile
+                    </button>
+                    <button class="w-full text-left px-4 py-2 bg-green-50 text-green-700 rounded hover:bg-green-100">
+                        View Settings
+                    </button>
+                    <button class="w-full text-left px-4 py-2 bg-purple-50 text-purple-700 rounded hover:bg-purple-100">
+                        Manage Account
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{{"{{"}}end{{"}}"}}

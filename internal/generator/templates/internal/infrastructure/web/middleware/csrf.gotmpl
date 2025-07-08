@@ -1,0 +1,19 @@
+package middleware
+
+import (
+	"net/http"
+
+	"github.com/justinas/nosurf"
+)
+
+func CSRF(secret string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		csrfHandler := nosurf.New(next)
+		csrfHandler.SetBaseCookie(http.Cookie{
+			HttpOnly: true,
+			Secure:   false, // Set to true in production with HTTPS
+			SameSite: http.SameSiteStrictMode,
+		})
+		return csrfHandler
+	}
+}

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{"{{"}}.Title{{"}}"}} - Web App</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <link rel="stylesheet" href="/static/css/app.css">
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <nav class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <a href="/" class="text-xl font-bold text-gray-900">Web App</a>
+                </div>
+                <div class="flex items-center space-x-4">
+                    {{"{{"}}if .User{{"}}"}}
+                        <span class="text-gray-700">Hello, {{"{{"}}.User.Username{{"}}"}}</span>
+                        <a href="/dashboard" class="text-blue-600 hover:text-blue-500">Dashboard</a>
+                        <form method="POST" action="/logout" class="inline">
+                            <input type="hidden" name="gorilla.csrf.Token" value="{{"{{"}}.CSRFToken{{"}}"}}">
+                            <button type="submit" class="text-red-600 hover:text-red-500">Logout</button>
+                        </form>
+                    {{"{{"}}else{{"}}"}}
+                        <a href="/login" class="text-blue-600 hover:text-blue-500">Login</a>
+                        <a href="/register" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">Register</a>
+                    {{"{{"}}end{{"}}"}}
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+        {{"{{"}}template "content" .{{"}}"}}
+    </main>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>

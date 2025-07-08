@@ -1,0 +1,104 @@
+package middleware
+
+import (
+	"context"
+	"net/http"
+
+	"{{.ModulePath}}/internal/domain/auth"
+	"{{.ModulePath}}/internal/domain/user"
+)
+
+type contextKey string
+
+const UserContextKey = contextKey("user")
+
+func Auth(authService *auth.Service) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Get session token from cookie
+			cookie, err := r.Cookie("session_token")
+			if err != nil {
+				http.Redirect(w, r, "/login", http.StatusFound)
+				return
+			}
+
+			// Validate session
+			user, err := authService.ValidateSession(r.Context(), cookie.Value)
+			if err != nil {
+				// Clear invalid cookie
+				http.SetCookie(w, &http.Cookie{
+					Name:   "session_token",
+					Value:  "",
+					MaxAge: -1,
+					Path:   "/",
+				})
+				http.Redirect(w, r, "/login", http.StatusFound)
+				return
+			}
+
+			// Add user to context
+			ctx := context.WithValue(r.Context(), UserContextKey, user)
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
+}
+
+func Session(authService *auth.Service) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Try to get session token from cookie
+			cookie, err := r.Cookie("session_token")
+			if err == nil {
+				// Validate session
+				user, err := authService.ValidateSession(r.Context(), cookie.Value)
+				if err == nil {
+					// Add user to context
+					ctx := context.WithValue(r.Context(), UserContextKey, user)
+					r = r.WithContext(ctx)
+				}
+			}
+
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+func GetUserFromContext(r *http.Request) *user.User {
+	if user, ok := r.Context().Value(UserContextKey).(*user.User); ok {
+		return user
+	}
+	return nil
+}
+
+func Chain(h http.Handler, middlewares ...func(http.Handler) http.Handler) http.Handler {
+	for i := len(middlewares) - 1; i >= 0; i-- {
+		h = middlewares[i](h)
+	}
+	return h
+}
+
+func CORS() func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Access-Control-Allow-Origin", "*")
+			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+
+			if r.Method == "OPTIONS" {
+				w.WriteHeader(http.StatusOK)
+				return
+			}
+
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+func JSONContentType() func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			next.ServeHTTP(w, r)
+		})
+	}
+}

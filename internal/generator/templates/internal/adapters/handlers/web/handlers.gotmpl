@@ -1,0 +1,50 @@
+package web
+
+import (
+	"html/template"
+	"net/http"
+	"path/filepath"
+
+	"{{.ModulePath}}/internal/domain/auth"
+	"{{.ModulePath}}/internal/domain/user"
+)
+
+type Handlers struct {
+	UserService *user.Service
+	AuthService *auth.Service
+	templates   *template.Template
+}
+
+type PageData struct {
+	Title     string
+	User      *user.User
+	CSRFToken string
+	Error     string
+	Success   string
+	Data      interface{}
+}
+
+func NewHandlers(userService *user.Service, authService *auth.Service) *Handlers {
+	// Load templates
+	templates := template.Must(template.ParseGlob(filepath.Join("internal", "infrastructure", "web", "templates", "*.gohtml")))
+	partials := template.Must(template.ParseGlob(filepath.Join("internal", "infrastructure", "web", "templates", "partials", "*.gohtml")))
+
+	// Merge templates
+	for _, t := range partials.Templates() {
+		templates.AddParseTree(t.Name(), t.Tree)
+	}
+
+	return &Handlers{
+		UserService: userService,
+		AuthService: authService,
+		templates:   templates,
+	}
+}
+
+func (h *Handlers) renderTemplate(w http.ResponseWriter, tmpl string, data interface{}) {
+	err := h.templates.ExecuteTemplate(w, tmpl, data)
+	if err != nil {
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+}

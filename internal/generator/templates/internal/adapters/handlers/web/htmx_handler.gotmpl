@@ -1,0 +1,23 @@
+package web
+
+import (
+	"net/http"
+
+	"{{.ModulePath}}/internal/infrastructure/web/middleware"
+)
+
+func (h *Handlers) HTMXUserInfo(w http.ResponseWriter, r *http.Request) {
+	user := middleware.GetUserFromContext(r)
+	if user == nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	data := struct {
+		User interface{}
+	}{
+		User: user,
+	}
+
+	h.renderTemplate(w, "partials/user_info.gohtml", data)
+}

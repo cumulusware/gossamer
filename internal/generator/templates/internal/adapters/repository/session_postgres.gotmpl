@@ -1,0 +1,68 @@
+package repository
+
+import (
+	"context"
+	"errors"
+
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
+
+	"{{.ModulePath}}/internal/domain/auth"
+	"{{.ModulePath}}/internal/infrastructure/database"
+)
+
+type SessionPostgres struct {
+	db *database.DB
+}
+
+func NewSessionPostgres(db *database.DB) *SessionPostgres {
+	return &SessionPostgres{db: db}
+}
+
+func (r *SessionPostgres) Create(ctx context.Context, session *auth.Session) error {
+	query := `
+		INSERT INTO sessions (id, user_id, token, expires_at, created_at)
+		VALUES ($1, $2, $3, $4, $5)`
+
+	_, err := r.db.Pool.Exec(ctx, query,
+		session.ID, session.UserID, session.Token, session.ExpiresAt, session.CreatedAt)
+
+	return err
+}
+
+func (r *SessionPostgres) GetByToken(ctx context.Context, token string) (*auth.Session, error) {
+	query := `
+		SELECT id, user_id, token, expires_at, created_at
+		FROM sessions WHERE token = $1`
+
+	session := &auth.Session{}
+	err := r.db.Pool.QueryRow(ctx, query, token).Scan(
+		&session.ID, &session.UserID, &session.Token, &session.ExpiresAt, &session.CreatedAt)
+
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, auth.ErrInvalidSession
+		}
+		return nil, err
+	}
+
+	return session, nil
+}
+
+func (r *SessionPostgres) Delete(ctx context.Context, token string) error {
+	query := `DELETE FROM sessions WHERE token = $1`
+	_, err := r.db.Pool.Exec(ctx, query, token)
+	return err
+}
+
+func (r *SessionPostgres) DeleteExpired(ctx context.Context) error {
+	query := `DELETE FROM sessions WHERE expires_at < NOW()`
+	_, err := r.db.Pool.Exec(ctx, query)
+	return err
+}
+
+func (r *SessionPostgres) DeleteByUserID(ctx context.Context, userID uuid.UUID) error {
+	query := `DELETE FROM sessions WHERE user_id = $1`
+	_, err := r.db.Pool.Exec(ctx, query, userID)
+	return err
+}

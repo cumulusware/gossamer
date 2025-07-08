@@ -1,0 +1,47 @@
+package web
+
+import (
+	"context"
+	"fmt"
+	"net/http"
+	"time"
+
+	"{{.ModulePath}}/internal/adapters/handlers/api"
+	"{{.ModulePath}}/internal/adapters/handlers/web"
+	"{{.ModulePath}}/internal/infrastructure/config"
+)
+
+type Server struct {
+	config      *config.Config
+	httpServer  *http.Server
+	webHandlers *web.Handlers
+	apiHandlers *api.Handlers
+}
+
+func New(config *config.Config, webHandlers *web.Handlers, apiHandlers *api.Handlers) *Server {
+	server := &Server{
+		config:      config,
+		webHandlers: webHandlers,
+		apiHandlers: apiHandlers,
+	}
+
+	mux := server.setupRoutes()
+
+	server.httpServer = &http.Server{
+		Addr:         fmt.Sprintf("%s:%s", config.Host, config.Port),
+		Handler:      mux,
+		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 15 * time.Second,
+		IdleTimeout:  60 * time.Second,
+	}
+
+	return server
+}
+
+func (s *Server) Start() error {
+	return s.httpServer.ListenAndServe()
+}
+
+func (s *Server) Shutdown(ctx context.Context) error {
+	return s.httpServer.Shutdown(ctx)
+}

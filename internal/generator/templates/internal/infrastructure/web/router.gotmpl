@@ -1,0 +1,62 @@
+package web
+
+import (
+	"net/http"
+
+	"{{.ModulePath}}/internal/infrastructure/web/middleware"
+)
+
+func (s *Server) setupRoutes() http.Handler {
+	mux := http.NewServeMux()
+
+	// Static files
+	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
+
+	// API routes
+	apiMux := http.NewServeMux()
+	apiMux.HandleFunc("GET /users", s.apiHandlers.ListUsers)
+	apiMux.HandleFunc("POST /users", s.apiHandlers.CreateUser)
+	apiMux.HandleFunc("GET /users/{id}", s.apiHandlers.GetUser)
+	apiMux.HandleFunc("PUT /users/{id}", s.apiHandlers.UpdateUser)
+	apiMux.HandleFunc("DELETE /users/{id}", s.apiHandlers.DeleteUser)
+
+	// Wrap API routes with middleware
+	mux.Handle("/api/v1/", http.StripPrefix("/api/v1", middleware.Chain(
+		apiMux,
+		middleware.CORS(),
+		middleware.Logging(),
+		middleware.JSONContentType(),
+	)))
+
+	// HTMX routes
+	htmxMux := http.NewServeMux()
+	htmxMux.HandleFunc("GET /user-info", s.webHandlers.HTMXUserInfo)
+
+	// Wrap HTMX routes with middleware
+	mux.Handle("/htmx/", http.StripPrefix("/htmx", middleware.Chain(
+		htmxMux,
+		middleware.Logging(),
+		middleware.Auth(s.webHandlers.AuthService),
+		middleware.CSRF(s.config.CSRFSecret),
+	)))
+
+	// Web routes
+	webMux := http.NewServeMux()
+	webMux.HandleFunc("GET /", s.webHandlers.Home)
+	webMux.HandleFunc("GET /login", s.webHandlers.LoginPage)
+	webMux.HandleFunc("POST /login", s.webHandlers.Login)
+	webMux.HandleFunc("GET /register", s.webHandlers.RegisterPage)
+	webMux.HandleFunc("POST /register", s.webHandlers.Register)
+	webMux.HandleFunc("POST /logout", s.webHandlers.Logout)
+	webMux.HandleFunc("GET /dashboard", s.webHandlers.Dashboard)
+
+	// Wrap web routes with middleware
+	mux.Handle("/", middleware.Chain(
+		webMux,
+		middleware.Logging(),
+		middleware.CSRF(s.config.CSRFSecret),
+		middleware.Session(s.webHandlers.AuthService),
+	))
+
+	return mux
+}

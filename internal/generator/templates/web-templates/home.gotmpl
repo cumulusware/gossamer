@@ -1,0 +1,24 @@
+{{"{{"}}define "content"{{"}}"}}
+<div class="px-4 py-6 sm:px-0">
+    <div class="border-4 border-dashed border-gray-200 rounded-lg h-96 p-8">
+        <div class="text-center">
+            <h1 class="text-4xl font-bold text-gray-900 mb-4">Welcome to Web App</h1>
+            <p class="text-xl text-gray-600 mb-8">A modern, scalable Go web application</p>
+            
+            {{"{{"}}if .User{{"}}"}}
+                <div class="space-y-4">
+                    <p class="text-lg text-gray-700">Welcome back, {{"{{"}}.User.Username{{"}}"}}!</p>
+                    <div class="space-x-4">
+                        <a href="/dashboard" class="bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700 inline-block">Go to Dashboard</a>
+                    </div>
+                </div>
+            {{"{{"}}else{{"}}"}}
+                <div class="space-x-4">
+                    <a href="/register" class="bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700 inline-block">Get Started</a>
+                    <a href="/login" class="bg-gray-200 text-gray-800 px-6 py-3 rounded-md hover:bg-gray-300 inline-block">Sign In</a>
+                </div>
+            {{"{{"}}end{{"}}"}}
+        </div>
+    </div>
+</div>
+{{"{{"}}end{{"}}"}}
